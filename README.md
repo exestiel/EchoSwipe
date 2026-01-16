@@ -1,11 +1,18 @@
 # EchoSwipe
 
-A Windows desktop application that continuously reads gift card data from a magnetic stripe reader and automatically saves it to a CSV file.
+A Windows desktop application that continuously reads gift card data from a magnetic stripe reader and automatically saves it to a CSV file with automatic deduplication and sorting.
 
 ## Features
 
 - Continuous card swiping with magnetic stripe reader
 - Automatic CSV export with account numbers
+- **Automatic deduplication** - No duplicate cards in the output file
+- **Sorted output** - Cards are automatically sorted by account number
+- **Custom CSV directory** - Choose where to save your CSV files
+- **Real-time statistics** - Track total swipes, unique cards, duplicates, and success rate
+- **Audio feedback** - Audio cues for successful swipes, errors, and warnings
+- **Error handling** - Graceful error handling with user-friendly notifications
+- **Dark mode** - Beautiful dark theme using Echo-UI design tokens
 - Real-time UI showing swipe status and recent cards
 - Built with Electron, React, and Echo-UI
 
@@ -18,28 +25,9 @@ A Windows desktop application that continuously reads gift card data from a magn
 
 ## Installation
 
-### Quick Setup
-
-1. **Run the setup script:**
-   ```powershell
-   .\setup.ps1
-   ```
-
-2. **If Electron installation fails** (due to Cursor/VS Code locking files):
-   - Close Cursor/VS Code
-   - Run: `pnpm add electron`
-   - Or run the setup script again: `.\setup.ps1`
-
-### Manual Installation
-
 ```powershell
 # Install dependencies
 pnpm install
-
-# If electron fails to install due to file locks:
-# 1. Close Cursor/VS Code
-# 2. Delete: node_modules\electron (if it exists)
-# 3. Run: pnpm add electron
 ```
 
 ## Development
@@ -51,6 +39,7 @@ pnpm dev
 ```
 
 This will:
+
 - Start Vite dev server on http://localhost:5173
 - Launch Electron app
 - Enable hot reload
@@ -63,64 +52,88 @@ Build the application for production:
 pnpm build
 ```
 
-This creates a distributable Windows installer in the `release` folder.
+This creates a portable executable in the `public` folder.
+
+### Build Options
+
+- `pnpm build` - Builds a portable executable (default)
+- `pnpm build:exe` - Builds a portable executable
+- `pnpm build:installer` - Builds an NSIS installer
+- `pnpm build:fast` - Fast build (unpacked directory, minimal compression)
+- `pnpm build:pack` - Build unpacked directory only
 
 ## Usage
 
 1. Launch the application
-2. Click "Start Capture" to begin listening for card swipes
-3. Swipe gift cards through the magnetic stripe reader
-4. Cards are automatically saved to `giftcards.csv` in the app's user data directory
-5. View recent swiped cards in the UI
+2. (Optional) Click "Change Directory" to select where CSV files should be saved
+3. Click "Start Capture" to begin listening for card swipes
+4. Swipe gift cards through the magnetic stripe reader
+5. Cards are automatically saved to `giftcards.csv` in your selected directory (or default app data directory)
+6. View recent swiped cards, statistics, and duplicates in the UI
+7. Use "Deduplicate" button to clean up existing CSV files
+8. Use "Open File" to open the CSV file in your default application
 
 ### CSV Format
 
 The CSV file contains:
+
 - `account_number` - The extracted account number from the card
 - `amount` - Always set to `0`
 - `activated` - Always set to `Y`
 
+**Important:** The CSV file is automatically:
+
+- **Deduplicated** - No duplicate account numbers
+- **Sorted** - Cards are sorted by account number (ascending)
+
 Example:
+
 ```csv
 account_number,amount,activated
 5022440200591308625,0,Y
 5022440200591308626,0,Y
+5022440200591308627,0,Y
 ```
 
 ## Project Structure
 
 ```
 .
-├── main.js                 # Electron main process
-├── preload.js              # Preload script for IPC
-├── vite.config.js         # Vite configuration
+├── main.js                      # Electron main process
+├── preload.cjs                  # Preload script for IPC (CommonJS)
+├── electron-builder.config.js   # Electron builder configuration
+├── vite.config.js              # Vite configuration
+├── scripts/
+│   ├── check-echo-ui-build.js  # Echo-UI build checker
+│   └── get-theme-color.js      # Theme color utility
 ├── src/
-│   ├── main.jsx           # React entry point
-│   ├── App.jsx            # Main React component
+│   ├── main.jsx                # React entry point
+│   ├── App.jsx                 # Main React component
 │   ├── components/
-│   │   └── CardReader.jsx  # Card reader utilities
+│   │   ├── CardReader.jsx      # Card reader utilities
+│   │   ├── NotificationContainer.jsx  # Toast notifications
+│   │   ├── StatCard.jsx        # Statistics card component
+│   │   └── StatusIndicator.jsx # Status indicator component
+│   ├── hooks/
+│   │   ├── useAudioFeedback.js # Audio feedback hook
+│   │   └── useNotify.js        # Notification hook
+│   ├── styles/
+│   │   └── base.css            # Base styles
+│   ├── types/
+│   │   └── electron.d.ts       # Electron API types
 │   └── utils/
-│       └── csvWriter.js   # CSV writing utilities
+│       └── csvWriter.js        # CSV writing utilities
 └── package.json
 ```
 
 ## Troubleshooting
-
-### Electron Installation Fails
-
-**Problem:** `ERR_PNPM_EPERM` or `EBUSY` error when installing electron
-
-**Solution:**
-1. Close all Cursor/VS Code windows
-2. Wait 5 seconds
-3. Delete `node_modules\electron` folder manually
-4. Run `pnpm add electron`
 
 ### Card Swipes Not Detected
 
 **Problem:** Cards are swiped but not appearing in the app
 
 **Solution:**
+
 1. Make sure "Start Capture" is clicked
 2. Ensure the magnetic stripe reader is in HID keyboard mode
 3. Check that the app window has focus
@@ -128,12 +141,23 @@ account_number,amount,activated
 
 ### CSV File Location
 
-The CSV file is saved to:
+By default, the CSV file is saved to:
+
 ```
 %APPDATA%\echoswipe\giftcards.csv
 ```
 
-Or in Electron's user data directory.
+You can change the save directory using the "Change Directory" button in the app. The selected directory is saved in your preferences and persists across app restarts.
+
+### Duplicate Cards
+
+The app automatically prevents duplicate cards from being written to the CSV file. If you swipe a card that already exists:
+
+- A warning notification will appear
+- The duplicate count will increase in statistics
+- The card will NOT be added to the CSV file again
+
+You can use the "Deduplicate" button to clean up any existing CSV files that may have duplicates from before this feature was added.
 
 ## Technology Stack
 
@@ -144,5 +168,3 @@ Or in Electron's user data directory.
 - **pnpm** - Package manager
 
 ## License
-
-MIT

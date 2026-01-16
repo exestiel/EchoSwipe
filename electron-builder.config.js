@@ -1,6 +1,6 @@
 export default {
-  appId: 'com.echocompany.giftcardswipetool',
-  productName: 'Gift Card Swipe Tool',
+  appId: 'com.echocompany.echoswipe',
+  productName: 'EchoSwipe',
   directories: {
     output: 'public',
     buildResources: 'build',

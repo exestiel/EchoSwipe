@@ -1,4 +1,4 @@
-# Gift Card Swipe Tool
+# EchoSwipe
 
 A Windows desktop application that continuously reads gift card data from a magnetic stripe reader and automatically saves it to a CSV file.
 
@@ -130,7 +130,7 @@ account_number,amount,activated
 
 The CSV file is saved to:
 ```
-%APPDATA%\gift-card-swipe-tool\giftcards.csv
+%APPDATA%\echoswipe\giftcards.csv
 ```
 
 Or in Electron's user data directory.

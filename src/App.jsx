@@ -346,7 +346,7 @@ function App() {
                 color: 'var(--text)',
               }}
             >
-              Gift Card Swipe Tool
+              EchoSwipe
             </h1>
             <p
               style={{

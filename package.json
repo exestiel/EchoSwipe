@@ -1,6 +1,6 @@
 {
   "name": "echoswipe",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Windows desktop application for capturing gift card data from magnetic stripe readers",
   "type": "module",
   "main": "main.js",

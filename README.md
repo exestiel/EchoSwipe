@@ -40,7 +40,7 @@ pnpm dev
 
 This will:
 
-- Start Vite dev server on http://localhost:5173
+- Start Vite dev server on <http://localhost:5173>
 - Launch Electron app
 - Enable hot reload
 
@@ -97,7 +97,7 @@ account_number,amount,activated
 
 ## Project Structure
 
-```
+```text
 .
 ├── main.js                      # Electron main process
 ├── preload.cjs                  # Preload script for IPC (CommonJS)
@@ -143,7 +143,7 @@ account_number,amount,activated
 
 By default, the CSV file is saved to:
 
-```
+```text
 %APPDATA%\echoswipe\giftcards.csv
 ```
 

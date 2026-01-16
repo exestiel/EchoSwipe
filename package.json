@@ -1,0 +1,46 @@
+{
+  "name": "gift-card-swipe-tool",
+  "version": "0.5.0",
+  "description": "Windows desktop application for capturing gift card data from magnetic stripe readers",
+  "type": "module",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:echo-ui": "cd ../Echo-UI && pnpm build",
+    "build:echo-ui:check": "node scripts/check-echo-ui-build.js && echo 'Skipping Echo-UI build' || cd ../Echo-UI && pnpm build",
+    "dev": "pnpm run build:echo-ui:check && concurrently \"pnpm run dev:vite\" \"pnpm run dev:electron\"",
+    "dev:browser": "pnpm run build:echo-ui:check && vite --host",
+    "dev:vite": "vite",
+    "dev:electron": "wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .",
+    "build": "pnpm run build:echo-ui && vite build && cross-env NODE_ENV=production electron-builder --config electron-builder.config.js --win portable",
+    "build:exe": "pnpm run build:echo-ui && vite build && cross-env NODE_ENV=production electron-builder --config electron-builder.config.js --win portable",
+    "build:installer": "pnpm run build:echo-ui && vite build && cross-env NODE_ENV=production electron-builder --config electron-builder.config.js --win nsis",
+    "build:fast": "pnpm run build:echo-ui && vite build && cross-env FAST_BUILD=true electron-builder --dir",
+    "build:pack": "pnpm run build:echo-ui && vite build && electron-builder --dir",
+    "build:vite": "vite build"
+  },
+  "keywords": [
+    "electron",
+    "gift-card",
+    "mag-stripe"
+  ],
+  "author": "The Echo Company",
+  "dependencies": {
+    "@echo-company/echo-ui": "file:../Echo-UI"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.3",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.2",
+    "concurrently": "^9.1.0",
+    "cross-env": "^10.1.0",
+    "electron": "^39.2.7",
+    "electron-builder": "^26.4.0",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.0",
+    "wait-on": "^9.0.3"
+  }
+}

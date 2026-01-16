@@ -1,0 +1,15 @@
+/* Base styles using Echo-UI design tokens */
+/* This ensures html, body, and root use the dark theme background */
+
+html,
+body {
+  background-color: var(--background);
+  color: var(--text);
+  margin: 0;
+  padding: 0;
+}
+
+#root {
+  min-height: 100vh;
+  background-color: var(--background);
+}

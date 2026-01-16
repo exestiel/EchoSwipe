@@ -1,0 +1,9 @@
+node_modules/
+.pnpm-store/
+.pnpm-cache/
+dist/
+public/
+*.log
+.DS_Store
+giftcards.csv
+*.csv

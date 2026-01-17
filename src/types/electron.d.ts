@@ -25,6 +25,27 @@ export interface ElectronAPI {
     duplicate?: boolean;
     error?: string;
   }>;
+  getCsvColumns: () => Promise<{
+    success: boolean;
+    columns: {
+      accountNumber: string;
+      amount: string;
+      activated: string;
+    };
+  }>;
+  saveCsvColumns: (columns: {
+    accountNumber: string;
+    amount: string;
+    activated: string;
+  }) => Promise<{
+    success: boolean;
+    columns?: {
+      accountNumber: string;
+      amount: string;
+      activated: string;
+    };
+    error?: string;
+  }>;
   startCapture: () => Promise<{ success: boolean }>;
   stopCapture: () => Promise<{ success: boolean }>;
   onCardSwiped: (callback: (data: { accountNumber: string; duplicate?: boolean } | string) => void) => void;

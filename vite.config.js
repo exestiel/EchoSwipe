@@ -30,8 +30,9 @@ export default defineConfig({
             if (id.includes('react') || id.includes('react-dom')) {
               return 'react-vendor';
             }
-            // Other vendor code
-            return 'vendor';
+            // Don't create a separate vendor chunk to avoid circular dependencies
+            // Let Vite handle other dependencies automatically
+            return undefined;
           }
         },
         chunkFileNames: 'assets/[name]-[hash].js',

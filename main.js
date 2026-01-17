@@ -34,14 +34,45 @@ function getCsvDirectory() {
   return app.getPath('userData');
 }
 
+// Get config object
+function getConfig() {
+  const configPath = getConfigPath();
+  if (existsSync(configPath)) {
+    try {
+      return JSON.parse(readFileSync(configPath, 'utf8'));
+    } catch (error) {
+      console.warn('Error reading config:', error);
+    }
+  }
+  return {};
+}
+
+// Save config object
+function saveConfig(config) {
+  const configPath = getConfigPath();
+  const existingConfig = getConfig();
+  const mergedConfig = { ...existingConfig, ...config };
+  writeFileSync(configPath, JSON.stringify(mergedConfig, null, 2), 'utf8');
+}
+
 // Save the CSV directory to config
 function saveCsvDirectory(directory) {
-  const configPath = getConfigPath();
-  const config = existsSync(configPath)
-    ? JSON.parse(readFileSync(configPath, 'utf8'))
-    : {};
-  config.csvDirectory = directory;
-  writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf8');
+  saveConfig({ csvDirectory: directory });
+}
+
+// Get CSV column configuration (defaults to standard columns)
+function getCsvColumns() {
+  const config = getConfig();
+  return config.csvColumns || {
+    accountNumber: 'account_number',
+    amount: 'amount',
+    activated: 'activated',
+  };
+}
+
+// Save CSV column configuration
+function saveCsvColumns(columns) {
+  saveConfig({ csvColumns: columns });
 }
 
 // Get the full CSV file path
@@ -98,6 +129,7 @@ function isCardInCsv(accountNumber) {
 // Write all unique cards to CSV in sorted order
 function writeCsvSorted(cards) {
   const csvPath = getCsvPath();
+  const columns = getCsvColumns();
   
   // Remove duplicates by account number (keep first occurrence)
   const uniqueCards = [];
@@ -116,8 +148,11 @@ function writeCsvSorted(cards) {
     return a.accountNumber.localeCompare(b.accountNumber, undefined, { numeric: true, sensitivity: 'base' });
   });
   
-  // Write header and sorted rows
-  const lines = ['account_number,amount,activated'];
+  // Write header using configured column names
+  const header = `${columns.accountNumber},${columns.amount},${columns.activated}`;
+  const lines = [header];
+  
+  // Write rows
   for (const card of uniqueCards) {
     lines.push(`${card.accountNumber},${card.amount},${card.activated}`);
   }
@@ -415,6 +450,59 @@ ipcMain.handle('stop-capture', () => {
   return { success: true };
 });
 
+// Get CSV column configuration
+ipcMain.handle('get-csv-columns', () => {
+  return {
+    success: true,
+    columns: getCsvColumns(),
+  };
+});
+
+// Save CSV column configuration
+ipcMain.handle('save-csv-columns', async (event, columns) => {
+  try {
+    // Validate columns object
+    if (!columns || typeof columns !== 'object') {
+      return {
+        success: false,
+        error: 'Invalid columns configuration',
+      };
+    }
+    
+    // Validate required fields
+    const requiredFields = ['accountNumber', 'amount', 'activated'];
+    for (const field of requiredFields) {
+      if (!columns[field] || typeof columns[field] !== 'string' || columns[field].trim() === '') {
+        return {
+          success: false,
+          error: `Column name for "${field}" is required and must be a non-empty string`,
+        };
+      }
+    }
+    
+    // Save columns
+    saveCsvColumns(columns);
+    
+    // Re-write CSV with new headers if file exists
+    const csvPath = getCsvPath();
+    if (existsSync(csvPath)) {
+      const cards = readCsvCards();
+      writeCsvSorted(cards);
+    }
+    
+    return {
+      success: true,
+      columns: getCsvColumns(),
+    };
+  } catch (error) {
+    console.error('Error saving CSV columns:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to save column configuration',
+    };
+  }
+});
+
 function setupKeyboardCapture() {
   if (!mainWindow || keyboardListener) return;
   
@@ -599,10 +687,17 @@ function extractAccountNumber(data) {
     return track1Match[1];
   }
   
-  // Try to extract from Track 2 format: ;5022440200591308625=...
-  const track2Match = data.match(/;(\d+)=/);
-  if (track2Match) {
-    return track2Match[1];
+  // Try to extract from Track 2 format with equals: ;5022440200591308625=...
+  const track2WithEqualsMatch = data.match(/;(\d+)=/);
+  if (track2WithEqualsMatch) {
+    return track2WithEqualsMatch[1];
+  }
+  
+  // Try to extract from Track 2 format ending with ?: ;2130000000100080999?
+  // This handles cards that only have Track 2 data ending with the end sentinel
+  const track2WithQuestionMatch = data.match(/;(\d+)\?/);
+  if (track2WithQuestionMatch) {
+    return track2WithQuestionMatch[1];
   }
   
   // Fallback: try to find the account number that appears in both tracks

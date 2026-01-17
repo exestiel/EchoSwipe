@@ -33,6 +33,11 @@ function App() {
   const [duplicateCards, setDuplicateCards] = useState(new Set()); // Track duplicate cards
   const [duplicateCount, setDuplicateCount] = useState(0); // Total duplicate count
   const [errorCount, setErrorCount] = useState(0); // Track error count
+  const [csvColumns, setCsvColumns] = useState({
+    accountNumber: 'account_number',
+    amount: 'amount',
+    activated: 'activated',
+  }); // CSV column names
   const { notify, removeNotification, notifications } = useNotify();
   const { playSound } = useAudioFeedback();
   const listenerRegisteredRef = useRef(false); // Prevent duplicate listener registration
@@ -288,6 +293,378 @@ function App() {
       });
     }
   };
+
+  // Load cards from CSV with pagination
+  const loadCards = async (page = 1, pageSize = 50) => {
+    if (!isElectron) return;
+    
+    try {
+      const result = await window.electronAPI.getCards(page, pageSize);
+      if (result.success) {
+        setAllCards(result.cards || []);
+        setCardPagination({
+          page: result.page || page,
+          pageSize: result.pageSize || pageSize,
+          total: result.total || 0,
+          totalPages: result.totalPages || 0,
+        });
+      }
+    } catch (error) {
+      console.error('Error loading cards:', error);
+    }
+  };
+
+  // Load all cards (for backward compatibility, but use pagination for large files)
+  const loadAllCards = async () => {
+    await loadCards(cardPagination.page, cardPagination.pageSize);
+  };
+
+  // Load CSV column configuration
+  const loadCsvColumns = async () => {
+    if (!isElectron) return;
+    
+    try {
+      const result = await window.electronAPI.getCsvColumns();
+      if (result.success && result.columns) {
+        setCsvColumns(result.columns);
+      }
+    } catch (error) {
+      console.error('Error loading CSV columns:', error);
+    }
+  };
+
+  // Save CSV column configuration
+  const handleSaveCsvColumns = async () => {
+    if (!isElectron) {
+      notify('CSV column configuration is only available in the Electron app.', {
+        type: 'warning',
+        duration: 3000,
+      });
+      return;
+    }
+
+    try {
+      const result = await window.electronAPI.saveCsvColumns(csvColumns);
+      
+      if (result.success) {
+        notify('CSV column configuration saved successfully', {
+          type: 'success',
+          duration: 3000,
+        });
+        playSound('success');
+        if (result.columns) {
+          setCsvColumns(result.columns);
+        }
+      } else {
+        notify(result.error || 'Failed to save CSV column configuration', {
+          type: 'error',
+          duration: 5000,
+        });
+        playSound('error');
+      }
+    } catch (error) {
+      console.error('Error saving CSV columns:', error);
+      notify('Failed to save CSV column configuration. Please try again.', {
+        type: 'error',
+        duration: 5000,
+      });
+      playSound('error');
+    }
+  };
+
+  // Update card field (generic handler for any column)
+  const handleUpdateCardField = async (accountNumber, columnId, value) => {
+    if (!isElectron) {
+      notify('Card management is only available in the Electron app.', {
+        type: 'warning',
+        duration: 3000,
+      });
+      return;
+    }
+
+    try {
+      // For amount column, use the existing handler for backward compatibility
+      if (columnId === 'amount') {
+        const result = await window.electronAPI.updateCardAmount(accountNumber, value);
+        
+        if (result.success) {
+          notify(`Amount updated for card ${formatCardNumber(accountNumber)}`, {
+            type: 'success',
+            duration: 3000,
+          });
+          playSound('success');
+          await loadCards(cardPagination.page, cardPagination.pageSize);
+          setEditingFields((prev) => {
+            const updated = { ...prev };
+            if (updated[accountNumber]) {
+              delete updated[accountNumber][columnId];
+              if (Object.keys(updated[accountNumber]).length === 0) {
+                delete updated[accountNumber];
+              }
+            }
+            return updated;
+          });
+        } else {
+          notify(result.error || 'Failed to update card field', {
+            type: 'error',
+            duration: 5000,
+          });
+          playSound('error');
+        }
+        return;
+      }
+      
+      // For other columns, use the generic update handler
+      const result = await window.electronAPI.updateCardField(accountNumber, columnId, value);
+      
+      if (result.success) {
+        const column = csvColumns.find(col => col.id === columnId);
+        const columnName = column ? column.name : columnId;
+        notify(`${columnName} updated for card ${formatCardNumber(accountNumber)}`, {
+          type: 'success',
+          duration: 3000,
+        });
+        playSound('success');
+        await loadCards(cardPagination.page, cardPagination.pageSize);
+        setEditingFields((prev) => {
+          const updated = { ...prev };
+          if (updated[accountNumber]) {
+            delete updated[accountNumber][columnId];
+            if (Object.keys(updated[accountNumber]).length === 0) {
+              delete updated[accountNumber];
+            }
+          }
+          return updated;
+        });
+      } else {
+        notify(result.error || 'Failed to update card field', {
+          type: 'error',
+          duration: 5000,
+        });
+        playSound('error');
+      }
+    } catch (error) {
+      console.error('Error updating card field:', error);
+      notify('Failed to update card field. Please try again.', {
+        type: 'error',
+        duration: 5000,
+      });
+      playSound('error');
+    }
+  };
+
+  // Add CSV column
+  const handleAddCsvColumn = async () => {
+    if (!isElectron) {
+      notify('Column management is only available in the Electron app.', {
+        type: 'warning',
+        duration: 3000,
+      });
+      return;
+    }
+
+    if (!newColumnForm.name.trim()) {
+      notify('Column name is required', {
+        type: 'error',
+        duration: 3000,
+      });
+      return;
+    }
+
+    try {
+      const columnData = {
+        name: newColumnForm.name.trim(),
+        type: newColumnForm.type,
+        defaultValue: newColumnForm.type === 'predefined' ? (newColumnForm.defaultValue || '') : '',
+      };
+
+      const result = await window.electronAPI.addCsvColumn(columnData);
+      
+      if (result.needsPrompt) {
+        // Show prompt dialog
+        setPromptDialog({
+          show: true,
+          column: columnData,
+          defaultValue: columnData.defaultValue || '',
+        });
+        return;
+      }
+      
+      if (result.success) {
+        notify(`Column "${columnData.name}" added successfully`, {
+          type: 'success',
+          duration: 3000,
+        });
+        playSound('success');
+        if (result.columns) {
+          setCsvColumns(result.columns);
+        }
+        setNewColumnForm({ name: '', type: 'manual', defaultValue: '', show: false });
+        await loadCards(cardPagination.page, cardPagination.pageSize);
+      } else {
+        notify(result.error || 'Failed to add column', {
+          type: 'error',
+          duration: 5000,
+        });
+        playSound('error');
+      }
+    } catch (error) {
+      console.error('Error adding CSV column:', error);
+      notify('Failed to add column. Please try again.', {
+        type: 'error',
+        duration: 5000,
+      });
+      playSound('error');
+    }
+  };
+
+  // Confirm add column with default value
+  const handleConfirmAddColumn = async () => {
+    if (!promptDialog.column) return;
+
+    try {
+      const result = await window.electronAPI.addCsvColumn(
+        promptDialog.column,
+        promptDialog.defaultValue
+      );
+      
+      if (result.success) {
+        notify(`Column "${promptDialog.column.name}" added successfully`, {
+          type: 'success',
+          duration: 3000,
+        });
+        playSound('success');
+        if (result.columns) {
+          setCsvColumns(result.columns);
+        }
+        setNewColumnForm({ name: '', type: 'manual', defaultValue: '', show: false });
+        setPromptDialog({ show: false, column: null, defaultValue: '' });
+        await loadCards(cardPagination.page, cardPagination.pageSize);
+      } else {
+        notify(result.error || 'Failed to add column', {
+          type: 'error',
+          duration: 5000,
+        });
+        playSound('error');
+      }
+    } catch (error) {
+      console.error('Error adding CSV column:', error);
+      notify('Failed to add column. Please try again.', {
+        type: 'error',
+        duration: 5000,
+      });
+      playSound('error');
+    }
+  };
+
+  // Delete CSV column
+  const handleDeleteCsvColumn = async (columnId) => {
+    if (!isElectron) {
+      notify('Column management is only available in the Electron app.', {
+        type: 'warning',
+        duration: 3000,
+      });
+      return;
+    }
+
+    if (!confirm('Are you sure you want to delete this column? This will remove it from all cards in the CSV file.')) {
+      return;
+    }
+
+    try {
+      const result = await window.electronAPI.deleteCsvColumn(columnId);
+      
+      if (result.success) {
+        notify('Column deleted successfully', {
+          type: 'success',
+          duration: 3000,
+        });
+        playSound('success');
+        if (result.columns) {
+          setCsvColumns(result.columns);
+        }
+        await loadCards(cardPagination.page, cardPagination.pageSize);
+      } else {
+        notify(result.error || 'Failed to delete column', {
+          type: 'error',
+          duration: 5000,
+        });
+        playSound('error');
+      }
+    } catch (error) {
+      console.error('Error deleting CSV column:', error);
+      notify('Failed to delete column. Please try again.', {
+        type: 'error',
+        duration: 5000,
+      });
+      playSound('error');
+    }
+  };
+
+  // Reorder CSV columns
+  const handleReorderCsvColumns = async (columnIds) => {
+    if (!isElectron) {
+      notify('Column management is only available in the Electron app.', {
+        type: 'warning',
+        duration: 3000,
+      });
+      return;
+    }
+
+    try {
+      const result = await window.electronAPI.reorderCsvColumns(columnIds);
+      
+      if (result.success) {
+        notify('Column order updated successfully', {
+          type: 'success',
+          duration: 3000,
+        });
+        playSound('success');
+        if (result.columns) {
+          setCsvColumns(result.columns);
+        }
+        await loadCards(cardPagination.page, cardPagination.pageSize);
+      } else {
+        notify(result.error || 'Failed to reorder columns', {
+          type: 'error',
+          duration: 5000,
+        });
+        playSound('error');
+      }
+    } catch (error) {
+      console.error('Error reordering CSV columns:', error);
+      notify('Failed to reorder columns. Please try again.', {
+        type: 'error',
+        duration: 5000,
+      });
+      playSound('error');
+    }
+  };
+
+  // Move column up
+  const handleMoveColumnUp = (index) => {
+    if (index === 0) return; // Can't move first column up
+    const newOrder = [...csvColumns];
+    [newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]];
+    const columnIds = newOrder.map(col => col.id);
+    handleReorderCsvColumns(columnIds);
+  };
+
+  // Move column down
+  const handleMoveColumnDown = (index) => {
+    if (index === csvColumns.length - 1) return; // Can't move last column down
+    const newOrder = [...csvColumns];
+    [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+    const columnIds = newOrder.map(col => col.id);
+    handleReorderCsvColumns(columnIds);
+  };
+
+  // Load columns on mount
+  useEffect(() => {
+    if (isElectron) {
+      loadCsvColumns();
+    }
+  }, [isElectron]);
 
   // Handle directory selection
   const handleSelectDirectory = async () => {
@@ -671,6 +1048,143 @@ function App() {
               )}
             </Stack>
           </Box>
+
+          {/* CSV Column Configuration Section */}
+          {isElectron && (
+            <Box>
+              <Stack spacing="md">
+                <h2
+                  style={{
+                    margin: 0,
+                    fontSize: 'var(--font-size-lg)',
+                    fontWeight: 'var(--font-weight-semibold)',
+                    color: 'var(--text)',
+                  }}
+                >
+                  CSV Column Configuration
+                </h2>
+                <Box
+                  p="md"
+                  bg="var(--surface)"
+                  borderRadius="md"
+                  style={{
+                    border: '1px solid var(--border)',
+                  }}
+                >
+                  <Stack spacing="md">
+                    <Stack spacing="sm">
+                      <label
+                        style={{
+                          fontSize: 'var(--font-size-sm)',
+                          fontWeight: 'var(--font-weight-medium)',
+                          color: 'var(--text)',
+                        }}
+                      >
+                        Account Number Column:
+                      </label>
+                      <input
+                        type="text"
+                        value={csvColumns.accountNumber}
+                        onChange={(e) => {
+                          setCsvColumns((prev) => ({
+                            ...prev,
+                            accountNumber: e.target.value,
+                          }));
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: 'var(--spacing-sm)',
+                          fontSize: 'var(--font-size-sm)',
+                          backgroundColor: 'var(--background)',
+                          color: 'var(--text)',
+                          border: '1px solid var(--border)',
+                          borderRadius: 'var(--radius-sm)',
+                          outline: 'none',
+                        }}
+                      />
+                    </Stack>
+                    <Stack spacing="sm">
+                      <label
+                        style={{
+                          fontSize: 'var(--font-size-sm)',
+                          fontWeight: 'var(--font-weight-medium)',
+                          color: 'var(--text)',
+                        }}
+                      >
+                        Amount Column:
+                      </label>
+                      <input
+                        type="text"
+                        value={csvColumns.amount}
+                        onChange={(e) => {
+                          setCsvColumns((prev) => ({
+                            ...prev,
+                            amount: e.target.value,
+                          }));
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: 'var(--spacing-sm)',
+                          fontSize: 'var(--font-size-sm)',
+                          backgroundColor: 'var(--background)',
+                          color: 'var(--text)',
+                          border: '1px solid var(--border)',
+                          borderRadius: 'var(--radius-sm)',
+                          outline: 'none',
+                        }}
+                      />
+                    </Stack>
+                    <Stack spacing="sm">
+                      <label
+                        style={{
+                          fontSize: 'var(--font-size-sm)',
+                          fontWeight: 'var(--font-weight-medium)',
+                          color: 'var(--text)',
+                        }}
+                      >
+                        Activated Column:
+                      </label>
+                      <input
+                        type="text"
+                        value={csvColumns.activated}
+                        onChange={(e) => {
+                          setCsvColumns((prev) => ({
+                            ...prev,
+                            activated: e.target.value,
+                          }));
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: 'var(--spacing-sm)',
+                          fontSize: 'var(--font-size-sm)',
+                          backgroundColor: 'var(--background)',
+                          color: 'var(--text)',
+                          border: '1px solid var(--border)',
+                          borderRadius: 'var(--radius-sm)',
+                          outline: 'none',
+                        }}
+                      />
+                    </Stack>
+                    <Button
+                      variant="primary"
+                      onClick={handleSaveCsvColumns}
+                    >
+                      Save Column Configuration
+                    </Button>
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: 'var(--font-size-xs)',
+                        color: 'var(--text-secondary)',
+                      }}
+                    >
+                      Changes will be applied to the CSV file header. Existing data will be preserved.
+                    </p>
+                  </Stack>
+                </Box>
+              </Stack>
+            </Box>
+          )}
         </Stack>
       </Container>
     </>

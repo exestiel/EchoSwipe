@@ -27,7 +27,16 @@ export default {
     '!**/.gitignore',
     '!**/GiftCard Example*.txt',
   ],
-  extraFiles: [],
+  extraFiles: [
+    {
+      from: 'USER_README.md',
+      to: 'USER_README.md',
+    },
+    {
+      from: 'RELEASE_NOTES.md',
+      to: 'RELEASE_NOTES.md',
+    },
+  ],
   asarUnpack: [],
   asar: true,
   win: {
@@ -39,6 +48,10 @@ export default {
     allowToChangeInstallationDirectory: true,
     createDesktopShortcut: true,
     createStartMenuShortcut: true,
+    installerIcon: undefined, // Optional - path to installer icon
+    uninstallerIcon: undefined, // Optional - path to uninstaller icon
+    installerHeaderIcon: undefined, // Optional - path to header icon
+    artifactName: '${productName} Setup ${version}.${ext}',
   },
   portable: {
     artifactName: '${productName}-${version}-portable.exe',

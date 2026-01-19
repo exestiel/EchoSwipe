@@ -24,8 +24,15 @@ export function StatusIndicator({ isActive, isElectron }) {
               backgroundColor: 'var(--warning-solid)',
             }}
           />
-          <p style={{ color: 'var(--warning-text)', margin: 0, fontWeight: 'var(--font-weight-medium)' }}>
-            <strong>Browser Mode:</strong> Card capture features are only available in the Electron app.
+          <p
+            style={{
+              color: 'var(--warning-text)',
+              margin: 0,
+              fontWeight: 'var(--font-weight-medium)',
+            }}
+          >
+            <strong>Browser Mode:</strong> Card capture features are only available in the Electron
+            app.
           </p>
         </Stack>
       </Box>

@@ -21,32 +21,35 @@ export function useAudioFeedback() {
   }, []);
 
   // Play a tone with specified frequency, duration, and type
-  const playTone = useCallback((frequency, duration, type = 'sine') => {
-    const audioContext = getAudioContext();
-    if (!audioContext) return;
+  const playTone = useCallback(
+    (frequency, duration, type = 'sine') => {
+      const audioContext = getAudioContext();
+      if (!audioContext) return;
 
-    try {
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
+      try {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
 
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
 
-      oscillator.frequency.value = frequency;
-      oscillator.type = type;
+        oscillator.frequency.value = frequency;
+        oscillator.type = type;
 
-      // Envelope: fade in and out for smoother sound
-      const now = audioContext.currentTime;
-      gainNode.gain.setValueAtTime(0, now);
-      gainNode.gain.linearRampToValueAtTime(0.3, now + 0.01); // Quick fade in
-      gainNode.gain.exponentialRampToValueAtTime(0.01, now + duration); // Fade out
+        // Envelope: fade in and out for smoother sound
+        const now = audioContext.currentTime;
+        gainNode.gain.setValueAtTime(0, now);
+        gainNode.gain.linearRampToValueAtTime(0.3, now + 0.01); // Quick fade in
+        gainNode.gain.exponentialRampToValueAtTime(0.01, now + duration); // Fade out
 
-      oscillator.start(now);
-      oscillator.stop(now + duration);
-    } catch (error) {
-      console.warn('Error playing tone:', error);
-    }
-  }, [getAudioContext]);
+        oscillator.start(now);
+        oscillator.stop(now + duration);
+      } catch (error) {
+        console.warn('Error playing tone:', error);
+      }
+    },
+    [getAudioContext]
+  );
 
   // Play success sound (pleasant high tone)
   const playSuccess = useCallback(() => {
@@ -66,23 +69,26 @@ export function useAudioFeedback() {
   }, [playTone]);
 
   // Play sound based on notification type
-  const playSound = useCallback((type) => {
-    switch (type) {
-      case 'success':
-        playSuccess();
-        break;
-      case 'error':
-      case 'danger':
-        playError();
-        break;
-      case 'warning':
-        playWarning();
-        break;
-      default:
-        // No sound for info
-        break;
-    }
-  }, [playSuccess, playError, playWarning]);
+  const playSound = useCallback(
+    (type) => {
+      switch (type) {
+        case 'success':
+          playSuccess();
+          break;
+        case 'error':
+        case 'danger':
+          playError();
+          break;
+        case 'warning':
+          playWarning();
+          break;
+        default:
+          // No sound for info
+          break;
+      }
+    },
+    [playSuccess, playError, playWarning]
+  );
 
   return {
     playSuccess,

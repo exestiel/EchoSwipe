@@ -66,9 +66,7 @@ export function NotificationContainer({ notifications, onRemove }) {
               }}
               onClick={() => onRemove(notification.id)}
             >
-              <p style={{ color: styles.textColor, margin: 0 }}>
-                {notification.message}
-              </p>
+              <p style={{ color: styles.textColor, margin: 0 }}>{notification.message}</p>
             </Box>
           );
         })}

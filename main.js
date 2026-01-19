@@ -63,11 +63,13 @@ function saveCsvDirectory(directory) {
 // Get CSV column configuration (defaults to standard columns)
 function getCsvColumns() {
   const config = getConfig();
-  return config.csvColumns || {
-    accountNumber: 'account_number',
-    amount: 'amount',
-    activated: 'activated',
-  };
+  return (
+    config.csvColumns || {
+      accountNumber: 'account_number',
+      amount: 'amount',
+      activated: 'activated',
+    }
+  );
 }
 
 // Save CSV column configuration
@@ -84,20 +86,20 @@ function getCsvPath() {
 function readCsvCards() {
   const csvPath = getCsvPath();
   const cards = [];
-  
+
   if (!existsSync(csvPath)) {
     return cards;
   }
-  
+
   try {
     const content = readFileSync(csvPath, 'utf8');
     const lines = content.trim().split('\n');
-    
+
     // Skip header line
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i].trim();
       if (!line) continue;
-      
+
       const parts = line.split(',');
       if (parts.length >= 1 && parts[0]) {
         cards.push({
@@ -111,7 +113,7 @@ function readCsvCards() {
     console.error('Error reading CSV file:', error);
     throw error;
   }
-  
+
   return cards;
 }
 
@@ -119,7 +121,7 @@ function readCsvCards() {
 function isCardInCsv(accountNumber) {
   try {
     const cards = readCsvCards();
-    return cards.some(card => card.accountNumber === accountNumber);
+    return cards.some((card) => card.accountNumber === accountNumber);
   } catch (error) {
     // If we can't read the file, assume it doesn't exist (will be created)
     return false;
@@ -130,33 +132,36 @@ function isCardInCsv(accountNumber) {
 function writeCsvSorted(cards) {
   const csvPath = getCsvPath();
   const columns = getCsvColumns();
-  
+
   // Remove duplicates by account number (keep first occurrence)
   const uniqueCards = [];
   const seen = new Set();
-  
+
   for (const card of cards) {
     if (!seen.has(card.accountNumber)) {
       seen.add(card.accountNumber);
       uniqueCards.push(card);
     }
   }
-  
+
   // Sort by account number (ascending)
   uniqueCards.sort((a, b) => {
     // Compare as strings to handle numeric sorting correctly
-    return a.accountNumber.localeCompare(b.accountNumber, undefined, { numeric: true, sensitivity: 'base' });
+    return a.accountNumber.localeCompare(b.accountNumber, undefined, {
+      numeric: true,
+      sensitivity: 'base',
+    });
   });
-  
+
   // Write header using configured column names
   const header = `${columns.accountNumber},${columns.amount},${columns.activated}`;
   const lines = [header];
-  
+
   // Write rows
   for (const card of uniqueCards) {
     lines.push(`${card.accountNumber},${card.amount},${card.activated}`);
   }
-  
+
   try {
     writeFileSync(csvPath, lines.join('\n') + '\n', 'utf8');
     return { success: true, count: uniqueCards.length };
@@ -169,7 +174,7 @@ function writeCsvSorted(cards) {
 function createWindow() {
   // Get dark theme background color from design tokens
   const darkBackground = getDarkThemeBackground();
-  
+
   mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
@@ -191,7 +196,7 @@ function createWindow() {
 
 app.whenReady().then(() => {
   createWindow();
-  
+
   // Set up keyboard capture when window is ready
   if (mainWindow) {
     mainWindow.webContents.once('did-finish-load', () => {
@@ -240,7 +245,7 @@ ipcMain.handle('select-csv-directory', async () => {
 
     const selectedDirectory = result.filePaths[0];
     saveCsvDirectory(selectedDirectory);
-    
+
     return {
       success: true,
       directory: selectedDirectory,
@@ -254,7 +259,7 @@ ipcMain.handle('select-csv-directory', async () => {
 
 ipcMain.handle('open-csv-file', async () => {
   const csvPath = getCsvPath();
-  
+
   try {
     if (!existsSync(csvPath)) {
       return {
@@ -262,10 +267,10 @@ ipcMain.handle('open-csv-file', async () => {
         error: 'CSV file does not exist yet. Swipe a card to create it.',
       };
     }
-    
+
     // Open the file with the default application
     await shell.openPath(csvPath);
-    
+
     return { success: true };
   } catch (error) {
     console.error('Error opening CSV file:', error);
@@ -278,7 +283,7 @@ ipcMain.handle('open-csv-file', async () => {
 
 ipcMain.handle('deduplicate-csv', async () => {
   const csvPath = getCsvPath();
-  
+
   try {
     if (!existsSync(csvPath)) {
       return {
@@ -286,20 +291,20 @@ ipcMain.handle('deduplicate-csv', async () => {
         error: 'CSV file does not exist yet. Swipe a card to create it.',
       };
     }
-    
+
     // Read existing cards
     let cards = [];
     try {
       cards = readCsvCards();
     } catch (readError) {
       let errorMessage = 'Failed to read CSV file';
-      
+
       if (readError.code === 'EACCES' || readError.code === 'EPERM') {
         errorMessage = 'Permission denied. Please check file permissions.';
       } else if (readError.message) {
         errorMessage = readError.message;
       }
-      
+
       return {
         success: false,
         error: errorMessage,
@@ -307,14 +312,14 @@ ipcMain.handle('deduplicate-csv', async () => {
         totalCards: 0,
       };
     }
-    
+
     const originalCount = cards.length;
-    
+
     // Deduplicate and sort using existing helper
     const result = writeCsvSorted(cards);
-    
+
     const duplicatesRemoved = originalCount - result.count;
-    
+
     return {
       success: true,
       duplicatesRemoved,
@@ -323,7 +328,7 @@ ipcMain.handle('deduplicate-csv', async () => {
     };
   } catch (error) {
     let errorMessage = 'Unknown error occurred';
-    
+
     if (error.code === 'EACCES' || error.code === 'EPERM') {
       errorMessage = 'Permission denied. Please check file permissions.';
     } else if (error.code === 'ENOSPC') {
@@ -333,9 +338,9 @@ ipcMain.handle('deduplicate-csv', async () => {
     } else if (error.message) {
       errorMessage = error.message;
     }
-    
+
     console.error('Error deduplicating CSV file:', error);
-    
+
     return {
       success: false,
       error: errorMessage,
@@ -347,7 +352,7 @@ ipcMain.handle('deduplicate-csv', async () => {
 
 ipcMain.handle('write-csv-row', async (event, accountNumber) => {
   const csvPath = getCsvPath();
-  
+
   try {
     // Validate account number
     if (!accountNumber || typeof accountNumber !== 'string' || accountNumber.trim() === '') {
@@ -357,9 +362,9 @@ ipcMain.handle('write-csv-row', async (event, accountNumber) => {
         path: csvPath,
       };
     }
-    
+
     const trimmedAccountNumber = accountNumber.trim();
-    
+
     // Check if card already exists in CSV
     if (isCardInCsv(trimmedAccountNumber)) {
       return {
@@ -369,7 +374,7 @@ ipcMain.handle('write-csv-row', async (event, accountNumber) => {
         path: csvPath,
       };
     }
-    
+
     // Read existing cards
     let cards = [];
     try {
@@ -381,17 +386,17 @@ ipcMain.handle('write-csv-row', async (event, accountNumber) => {
         throw readError;
       }
     }
-    
+
     // Add new card
     cards.push({
       accountNumber: trimmedAccountNumber,
       amount: '0',
       activated: 'Y',
     });
-    
+
     // Write sorted and deduplicated CSV
     const result = writeCsvSorted(cards);
-    
+
     return {
       success: true,
       path: csvPath,
@@ -400,7 +405,7 @@ ipcMain.handle('write-csv-row', async (event, accountNumber) => {
   } catch (error) {
     // Handle different types of errors
     let errorMessage = 'Unknown error occurred';
-    
+
     if (error.code === 'EACCES' || error.code === 'EPERM') {
       errorMessage = 'Permission denied. Please check file permissions.';
     } else if (error.code === 'ENOSPC') {
@@ -410,9 +415,9 @@ ipcMain.handle('write-csv-row', async (event, accountNumber) => {
     } else if (error.message) {
       errorMessage = error.message;
     }
-    
+
     console.error('Error writing CSV row:', error);
-    
+
     return {
       success: false,
       error: errorMessage,
@@ -424,7 +429,7 @@ ipcMain.handle('write-csv-row', async (event, accountNumber) => {
 
 ipcMain.handle('start-capture', () => {
   isCapturing = true;
-  
+
   // Ensure window is focused to receive keyboard input
   if (mainWindow) {
     mainWindow.focus();
@@ -435,7 +440,7 @@ ipcMain.handle('start-capture', () => {
   } else {
     setupKeyboardCapture();
   }
-  
+
   return { success: true };
 });
 
@@ -468,7 +473,7 @@ ipcMain.handle('save-csv-columns', async (event, columns) => {
         error: 'Invalid columns configuration',
       };
     }
-    
+
     // Validate required fields
     const requiredFields = ['accountNumber', 'amount', 'activated'];
     for (const field of requiredFields) {
@@ -479,17 +484,17 @@ ipcMain.handle('save-csv-columns', async (event, columns) => {
         };
       }
     }
-    
+
     // Save columns
     saveCsvColumns(columns);
-    
+
     // Re-write CSV with new headers if file exists
     const csvPath = getCsvPath();
     if (existsSync(csvPath)) {
       const cards = readCsvCards();
       writeCsvSorted(cards);
     }
-    
+
     return {
       success: true,
       columns: getCsvColumns(),
@@ -505,28 +510,28 @@ ipcMain.handle('save-csv-columns', async (event, columns) => {
 
 function setupKeyboardCapture() {
   if (!mainWindow || keyboardListener) return;
-  
+
   // Set up keyboard capture using before-input-event
   // This captures input even when the window has focus
   keyboardListener = (event, input) => {
     if (!isCapturing) return;
-    
+
     // Prevent default to avoid typing in the window
     event.preventDefault();
-    
+
     // Handle all characters including special ones
     let char = null;
-    
+
     // Use input.char if available (more reliable for special chars)
     if (input.char && input.char.length === 1) {
       char = input.char;
     } else {
       // Fallback to key property with special character mapping
-      if (input.key === '%' || input.code === 'Digit5' && input.shift) char = '%';
+      if (input.key === '%' || (input.code === 'Digit5' && input.shift)) char = '%';
       else if (input.key === ';' || input.code === 'Semicolon') char = ';';
       else if (input.key === '=' || input.code === 'Equal') char = '=';
-      else if (input.key === '?' || input.code === 'Slash' && input.shift) char = '?';
-      else if (input.key === '^' || input.code === 'Digit6' && input.shift) char = '^';
+      else if (input.key === '?' || (input.code === 'Slash' && input.shift)) char = '?';
+      else if (input.key === '^' || (input.code === 'Digit6' && input.shift)) char = '^';
       else if (input.key === 'Backspace') {
         // Handle backspace - might be part of swipe or user input
         if (swipeBuffer.length > 0) {
@@ -538,16 +543,16 @@ function setupKeyboardCapture() {
         char = input.key;
       }
     }
-    
+
     if (char) {
       // Reset timeout on new input
       if (swipeTimeout) {
         clearTimeout(swipeTimeout);
       }
-      
+
       // Add character to buffer
       swipeBuffer += char;
-      
+
       // Set timeout to process swipe when input stops
       swipeTimeout = setTimeout(() => {
         if (swipeBuffer.length > 0) {
@@ -557,7 +562,7 @@ function setupKeyboardCapture() {
       }, SWIPE_TIMEOUT_MS);
     }
   };
-  
+
   mainWindow.webContents.on('before-input-event', keyboardListener);
 }
 
@@ -578,9 +583,9 @@ app.on('browser-window-focus', (event, window) => {
 function processSwipe(data) {
   // Parse mag stripe data
   // Format: %B5022440200591308625^HEARTLAND GIFT^391200018130?;5022440200591308625=391200018130?
-  
+
   const accountNumber = extractAccountNumber(data);
-  
+
   if (!accountNumber) {
     if (process.env.NODE_ENV === 'development') {
       console.warn('⚠ Failed to extract account number from swipe data');
@@ -594,17 +599,17 @@ function processSwipe(data) {
     }
     return;
   }
-  
+
   // Write to CSV using the same logic as IPC handler
   try {
     const csvPath = getCsvPath();
-    
+
     // Validate account number
     const trimmedAccountNumber = accountNumber.trim();
     if (!trimmedAccountNumber) {
       throw new Error('Invalid account number');
     }
-    
+
     // Check if card already exists in CSV
     if (isCardInCsv(trimmedAccountNumber)) {
       // Duplicate detected - notify renderer but don't write
@@ -614,13 +619,13 @@ function processSwipe(data) {
           duplicate: true,
         });
       }
-      
+
       if (process.env.NODE_ENV === 'development') {
         console.log('⚠ Duplicate card detected:', trimmedAccountNumber);
       }
       return;
     }
-    
+
     // Read existing cards
     let cards = [];
     try {
@@ -631,17 +636,17 @@ function processSwipe(data) {
         throw readError;
       }
     }
-    
+
     // Add new card
     cards.push({
       accountNumber: trimmedAccountNumber,
       amount: '0',
       activated: 'Y',
     });
-    
+
     // Write sorted and deduplicated CSV
     writeCsvSorted(cards);
-    
+
     // Notify renderer of successful write
     if (mainWindow) {
       mainWindow.webContents.send('card-swiped', {
@@ -649,7 +654,7 @@ function processSwipe(data) {
         duplicate: false,
       });
     }
-    
+
     // Log success (less verbose)
     if (process.env.NODE_ENV === 'development') {
       console.log('✓ Card swiped:', trimmedAccountNumber);
@@ -657,7 +662,7 @@ function processSwipe(data) {
   } catch (error) {
     // Handle errors gracefully
     let errorMessage = 'Unknown error occurred';
-    
+
     if (error.code === 'EACCES' || error.code === 'EPERM') {
       errorMessage = 'Permission denied. Please check file permissions.';
     } else if (error.code === 'ENOSPC') {
@@ -667,9 +672,9 @@ function processSwipe(data) {
     } else if (error.message) {
       errorMessage = error.message;
     }
-    
+
     console.error('Error processing swipe:', error);
-    
+
     // Send error event to renderer
     if (mainWindow) {
       mainWindow.webContents.send('card-swipe-error', {
@@ -686,26 +691,26 @@ function extractAccountNumber(data) {
   if (track1Match) {
     return track1Match[1];
   }
-  
+
   // Try to extract from Track 2 format with equals: ;5022440200591308625=...
   const track2WithEqualsMatch = data.match(/;(\d+)=/);
   if (track2WithEqualsMatch) {
     return track2WithEqualsMatch[1];
   }
-  
+
   // Try to extract from Track 2 format ending with ?: ;2130000000100080999?
   // This handles cards that only have Track 2 data ending with the end sentinel
   const track2WithQuestionMatch = data.match(/;(\d+)\?/);
   if (track2WithQuestionMatch) {
     return track2WithQuestionMatch[1];
   }
-  
+
   // Fallback: try to find the account number that appears in both tracks
   // This is the number that appears before ^ in track 1 and before = in track 2
   const bothTracksMatch = data.match(/%B(\d+)\^.*?;\1=/);
   if (bothTracksMatch) {
     return bothTracksMatch[1];
   }
-  
+
   return null;
 }

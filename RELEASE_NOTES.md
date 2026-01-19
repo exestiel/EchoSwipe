@@ -8,7 +8,11 @@
 
 ## Overview
 
-Welcome to EchoSwipe! This is our first published release (v1.1.0-rc), introducing a powerful Windows desktop application for capturing and managing gift card data from magnetic stripe readers. This release candidate includes enhanced customization options and improved card reading capabilities, making the application flexible for different workflows with support for various gift card formats.
+Welcome to EchoSwipe! This is our first published release (v1.1.0-rc), introducing a powerful
+Windows desktop application for capturing and managing gift card data from magnetic stripe readers.
+This release candidate includes enhanced customization options and improved card reading
+capabilities, making the application flexible for different workflows with support for various
+gift card formats.
 
 ---
 
@@ -16,13 +20,18 @@ Welcome to EchoSwipe! This is our first published release (v1.1.0-rc), introduci
 
 ### Customizable CSV Column Names
 
-You can now customize the column names in your CSV output files to match your specific requirements. This feature allows you to:
+You can now customize the column names in your CSV output files to match your specific
+requirements. This feature allows you to:
 
-- **Configure column headers** - Change the default column names (`account_number`, `amount`, `activated`) to match your system's requirements
-- **Persistent settings** - Your column configuration is saved and automatically applied to all future CSV exports
-- **Easy configuration** - Access the CSV Column Configuration section in the app to update column names at any time
+- **Configure column headers** - Change the default column names (`account_number`, `amount`,
+  `activated`) to match your system's requirements
+- **Persistent settings** - Your column configuration is saved and automatically applied to all
+  future CSV exports
+- **Easy configuration** - Access the CSV Column Configuration section in the app to update
+  column names at any time
 
-This makes it easier to integrate EchoSwipe with other systems that may require specific column naming conventions.
+This makes it easier to integrate EchoSwipe with other systems that may require specific column
+naming conventions.
 
 ### Enhanced Card Format Support
 
@@ -33,7 +42,8 @@ Improved card extraction logic now supports a wider variety of gift card formats
 - **Track 2 only formats** - Cards that only contain Track 2 data
 - **Better fallback detection** - More reliable account number extraction across different card types
 
-These improvements ensure that EchoSwipe can accurately read account numbers from a broader range of gift card types and magnetic stripe readers.
+These improvements ensure that EchoSwipe can accurately read account numbers from a broader
+range of gift card types and magnetic stripe readers.
 
 ---
 
@@ -63,7 +73,7 @@ These improvements ensure that EchoSwipe can accurately read account numbers fro
 
 ## Getting Started
 
-This is our first published release (release candidate). 
+This is our first published release (release candidate).
 
 ### Installation Options
 
@@ -93,10 +103,14 @@ None at this time. If you encounter any issues, please report them for the final
 
 ## What's Next
 
-As this is our first published release, we're actively gathering feedback to improve EchoSwipe. The final v1.1.0 release will include any bug fixes and improvements based on feedback from this release candidate. Future releases will continue to enhance functionality and add new features based on user needs.
+As this is our first published release, we're actively gathering feedback to improve EchoSwipe.
+The final v1.1.0 release will include any bug fixes and improvements based on feedback from this
+release candidate. Future releases will continue to enhance functionality and add new features
+based on user needs.
 
 ---
 
 ## Feedback
 
-We welcome your feedback on this release candidate. Please test the new features and let us know about your experience or any issues you encounter.
+We welcome your feedback on this release candidate. Please test the new features and let us know
+about your experience or any issues you encounter.

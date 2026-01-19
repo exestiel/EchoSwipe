@@ -2,13 +2,16 @@
 
 **Version 1.1.0-rc** | [Release Notes](RELEASE_NOTES.md)
 
-A Windows desktop application that continuously reads gift card data from a magnetic stripe reader and automatically saves it to a CSV file with automatic deduplication and sorting.
+A Windows desktop application that continuously reads gift card data from a magnetic stripe
+reader and automatically saves it to a CSV file with automatic deduplication and sorting.
 
 ---
 
 ## Overview
 
-EchoSwipe simplifies gift card data collection by automatically capturing account numbers from magnetic stripe readers and organizing them into a clean, deduplicated CSV file. Perfect for retail operations, inventory management, and gift card processing workflows.
+EchoSwipe simplifies gift card data collection by automatically capturing account numbers from
+magnetic stripe readers and organizing them into a clean, deduplicated CSV file. Perfect for
+retail operations, inventory management, and gift card processing workflows.
 
 ---
 
@@ -83,8 +86,10 @@ EchoSwipe v1.1.0-rc is available in two formats. Choose the option that best fit
 ### First Time Setup
 
 1. **Launch EchoSwipe** - Open the application
-2. **(Optional) Configure CSV Columns** - Go to the CSV Column Configuration section to customize column names if needed
-3. **(Optional) Choose Save Location** - Click "Change Directory" to select where CSV files should be saved
+2. **(Optional) Configure CSV Columns** - Go to the CSV Column Configuration section to
+   customize column names if needed
+3. **(Optional) Choose Save Location** - Click "Change Directory" to select where CSV files
+   should be saved
    - Default location: `%APPDATA%\echoswipe\giftcards.csv`
 
 ### Using EchoSwipe
@@ -92,7 +97,8 @@ EchoSwipe v1.1.0-rc is available in two formats. Choose the option that best fit
 1. **Start Capture** - Click the "Start Capture" button to begin listening for card swipes
 2. **Swipe Cards** - Swipe gift cards through your magnetic stripe reader
 3. **Monitor Progress** - Watch the real-time statistics and recent cards display
-4. **Access Your Data** - Click "Open File" to view your CSV file, or use "Deduplicate" to clean up existing files
+4. **Access Your Data** - Click "Open File" to view your CSV file, or use "Deduplicate" to clean
+   up existing files
 
 ### CSV Column Configuration
 
@@ -141,7 +147,8 @@ EchoSwipe supports a wide variety of gift card formats:
 - **Track 2 with equals sign** - Standard Track 2 format with field separators
 - **Track 2 only formats** - Cards that only contain Track 2 data
 
-The application automatically detects and extracts account numbers from these formats, ensuring compatibility with most magnetic stripe readers and gift card types.
+The application automatically detects and extracts account numbers from these formats, ensuring
+compatibility with most magnetic stripe readers and gift card types.
 
 ---
 
@@ -153,7 +160,8 @@ The application automatically detects and extracts account numbers from these fo
 
 **Solutions:**
 
-1. **Check Capture Status** - Make sure "Start Capture" is clicked (button should show "Stop Capture" when active)
+1. **Check Capture Status** - Make sure "Start Capture" is clicked (button should show "Stop
+   Capture" when active)
 2. **Reader Mode** - Ensure your magnetic stripe reader is in HID keyboard emulation mode
 3. **Window Focus** - Make sure the EchoSwipe window has focus (click on it)
 4. **Card Format** - Verify your card format is supported (see Supported Card Formats above)
@@ -162,11 +170,13 @@ The application automatically detects and extracts account numbers from these fo
 ### CSV File Location
 
 **Default Location:**
-```
+
+```text
 %APPDATA%\echoswipe\giftcards.csv
 ```
 
 **To Change Location:**
+
 - Click the "Change Directory" button in the app
 - Select your desired folder
 - The new location is saved automatically
@@ -174,6 +184,7 @@ The application automatically detects and extracts account numbers from these fo
 ### Duplicate Cards
 
 **How It Works:**
+
 - EchoSwipe automatically prevents duplicate cards from being written to the CSV file
 - If you swipe a card that already exists:
   - A warning notification will appear
@@ -181,7 +192,9 @@ The application automatically detects and extracts account numbers from these fo
   - The card will NOT be added to the CSV file again
 
 **Cleaning Existing Files:**
-- Use the "Deduplicate" button to clean up any existing CSV files that may have duplicates from before using EchoSwipe
+
+- Use the "Deduplicate" button to clean up any existing CSV files that may have duplicates from
+  before using EchoSwipe
 
 ### Audio Feedback Not Working
 
@@ -196,8 +209,10 @@ The application automatically detects and extracts account numbers from these fo
 1. **Test First** - Swipe a test card to verify everything is working before processing large batches
 2. **Monitor Statistics** - Keep an eye on the statistics panel to track your progress
 3. **Regular Backups** - Periodically backup your CSV files
-4. **Column Configuration** - Set up your CSV column names before starting a large batch to avoid reconfiguration
-5. **Deduplicate Regularly** - Use the deduplicate tool on existing files before importing into other systems
+4. **Column Configuration** - Set up your CSV column names before starting a large batch to avoid
+   reconfiguration
+5. **Deduplicate Regularly** - Use the deduplicate tool on existing files before importing into
+   other systems
 
 ---
 
@@ -215,7 +230,8 @@ For issues, questions, or feedback:
 
 **Current Version:** 1.1.0-rc (Release Candidate)
 
-This is the first published release of EchoSwipe. We welcome your feedback to help improve the application for the final v1.1.0 release.
+This is the first published release of EchoSwipe. We welcome your feedback to help improve the
+application for the final v1.1.0 release.
 
 See [RELEASE_NOTES.md](RELEASE_NOTES.md) for detailed information about this release.
 

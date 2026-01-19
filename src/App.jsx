@@ -45,38 +45,39 @@ function App() {
   const isElectron = typeof window.electronAPI !== 'undefined';
 
   useEffect(() => {
-
     if (isElectron && !listenerRegisteredRef.current) {
       listenerRegisteredRef.current = true;
-      
+
       // Get CSV path and directory on mount
-      Promise.all([
-        window.electronAPI.getCsvPath(),
-        window.electronAPI.getCsvDirectory(),
-      ]).then(([path, directory]) => {
-        setCsvPath(path);
-        setCsvDirectory(directory);
-      }).catch((err) => {
-        console.warn('Failed to get CSV path:', err);
-      });
+      Promise.all([window.electronAPI.getCsvPath(), window.electronAPI.getCsvDirectory()])
+        .then(([path, directory]) => {
+          setCsvPath(path);
+          setCsvDirectory(directory);
+        })
+        .catch((err) => {
+          console.warn('Failed to get CSV path:', err);
+        });
 
       // Listen for card swipes
       const handleCardSwiped = (data) => {
         // Handle both old format (string) and new format (object)
         const accountNumber = typeof data === 'string' ? data : data.accountNumber;
-        const isDuplicate = typeof data === 'object' ? (data.duplicate === true) : false;
+        const isDuplicate = typeof data === 'object' ? data.duplicate === true : false;
         const timestamp = new Date();
-        
+
         if (isDuplicate) {
           // This is a duplicate - already in CSV, don't write again
           setDuplicateCards((dupPrev) => new Set([...dupPrev, accountNumber]));
           setDuplicateCount((count) => count + 1);
-          
+
           // Show notification using useNotify
-          notify(`Duplicate detected: Card ${formatCardNumber(accountNumber)} already exists in CSV file!`, {
-            type: 'warning',
-            duration: 5000,
-          });
+          notify(
+            `Duplicate detected: Card ${formatCardNumber(accountNumber)} already exists in CSV file!`,
+            {
+              type: 'warning',
+              duration: 5000,
+            }
+          );
           // Play warning sound
           playSound('warning');
         } else {
@@ -94,7 +95,7 @@ function App() {
             }
             return new Set([...prev, accountNumber]);
           });
-          
+
           // Success notification for new card
           notify(`Card ${formatCardNumber(accountNumber)} captured and saved successfully`, {
             type: 'success',
@@ -103,9 +104,9 @@ function App() {
           // Play success sound
           playSound('success');
         }
-        
+
         setCardCount((prev) => prev + 1);
-        
+
         // Update recent cards with proper duplicate tracking
         setRecentCards((prev) => {
           const newCard = {
@@ -121,10 +122,12 @@ function App() {
       // Listen for card swipe errors
       const handleCardSwipeError = (errorData) => {
         setErrorCount((prev) => prev + 1);
-        
+
         const errorMessage = errorData.error || 'Unknown error occurred';
-        const accountNumber = errorData.accountNumber ? formatCardNumber(errorData.accountNumber) : '';
-        
+        const accountNumber = errorData.accountNumber
+          ? formatCardNumber(errorData.accountNumber)
+          : '';
+
         notify(
           accountNumber
             ? `Error saving card ${accountNumber}: ${errorMessage}`
@@ -136,14 +139,14 @@ function App() {
         );
         // Play error sound
         playSound('error');
-        
+
         if (process.env.NODE_ENV === 'development') {
           console.error('Card swipe error:', errorData);
         }
       };
 
       window.electronAPI.onCardSwiped(handleCardSwiped);
-      
+
       if (!errorListenerRegisteredRef.current) {
         errorListenerRegisteredRef.current = true;
         window.electronAPI.onCardSwipeError(handleCardSwipeError);
@@ -236,7 +239,7 @@ function App() {
 
     try {
       const result = await window.electronAPI.openCsvFile();
-      
+
       if (result.success) {
         notify('CSV file opened', {
           type: 'success',
@@ -269,12 +272,13 @@ function App() {
 
     try {
       const result = await window.electronAPI.deduplicateCsv();
-      
+
       if (result.success) {
-        const message = result.duplicatesRemoved && result.duplicatesRemoved > 0
-          ? `Deduplication complete: Removed ${result.duplicatesRemoved} duplicate${result.duplicatesRemoved !== 1 ? 's' : ''}. ${result.totalCards} unique cards remain.`
-          : `Deduplication complete: No duplicates found. ${result.totalCards} cards in file.`;
-        
+        const message =
+          result.duplicatesRemoved && result.duplicatesRemoved > 0
+            ? `Deduplication complete: Removed ${result.duplicatesRemoved} duplicate${result.duplicatesRemoved !== 1 ? 's' : ''}. ${result.totalCards} unique cards remain.`
+            : `Deduplication complete: No duplicates found. ${result.totalCards} cards in file.`;
+
         notify(message, {
           type: 'success',
           duration: 5000,
@@ -297,7 +301,7 @@ function App() {
   // Load cards from CSV with pagination
   const loadCards = async (page = 1, pageSize = 50) => {
     if (!isElectron) return;
-    
+
     try {
       const result = await window.electronAPI.getCards(page, pageSize);
       if (result.success) {
@@ -322,7 +326,7 @@ function App() {
   // Load CSV column configuration
   const loadCsvColumns = async () => {
     if (!isElectron) return;
-    
+
     try {
       const result = await window.electronAPI.getCsvColumns();
       if (result.success && result.columns) {
@@ -345,7 +349,7 @@ function App() {
 
     try {
       const result = await window.electronAPI.saveCsvColumns(csvColumns);
-      
+
       if (result.success) {
         notify('CSV column configuration saved successfully', {
           type: 'success',
@@ -386,7 +390,7 @@ function App() {
       // For amount column, use the existing handler for backward compatibility
       if (columnId === 'amount') {
         const result = await window.electronAPI.updateCardAmount(accountNumber, value);
-        
+
         if (result.success) {
           notify(`Amount updated for card ${formatCardNumber(accountNumber)}`, {
             type: 'success',
@@ -413,12 +417,12 @@ function App() {
         }
         return;
       }
-      
+
       // For other columns, use the generic update handler
       const result = await window.electronAPI.updateCardField(accountNumber, columnId, value);
-      
+
       if (result.success) {
-        const column = csvColumns.find(col => col.id === columnId);
+        const column = csvColumns.find((col) => col.id === columnId);
         const columnName = column ? column.name : columnId;
         notify(`${columnName} updated for card ${formatCardNumber(accountNumber)}`, {
           type: 'success',
@@ -475,11 +479,11 @@ function App() {
       const columnData = {
         name: newColumnForm.name.trim(),
         type: newColumnForm.type,
-        defaultValue: newColumnForm.type === 'predefined' ? (newColumnForm.defaultValue || '') : '',
+        defaultValue: newColumnForm.type === 'predefined' ? newColumnForm.defaultValue || '' : '',
       };
 
       const result = await window.electronAPI.addCsvColumn(columnData);
-      
+
       if (result.needsPrompt) {
         // Show prompt dialog
         setPromptDialog({
@@ -489,7 +493,7 @@ function App() {
         });
         return;
       }
-      
+
       if (result.success) {
         notify(`Column "${columnData.name}" added successfully`, {
           type: 'success',
@@ -527,7 +531,7 @@ function App() {
         promptDialog.column,
         promptDialog.defaultValue
       );
-      
+
       if (result.success) {
         notify(`Column "${promptDialog.column.name}" added successfully`, {
           type: 'success',
@@ -567,13 +571,17 @@ function App() {
       return;
     }
 
-    if (!confirm('Are you sure you want to delete this column? This will remove it from all cards in the CSV file.')) {
+    if (
+      !confirm(
+        'Are you sure you want to delete this column? This will remove it from all cards in the CSV file.'
+      )
+    ) {
       return;
     }
 
     try {
       const result = await window.electronAPI.deleteCsvColumn(columnId);
-      
+
       if (result.success) {
         notify('Column deleted successfully', {
           type: 'success',
@@ -613,7 +621,7 @@ function App() {
 
     try {
       const result = await window.electronAPI.reorderCsvColumns(columnIds);
-      
+
       if (result.success) {
         notify('Column order updated successfully', {
           type: 'success',
@@ -646,7 +654,7 @@ function App() {
     if (index === 0) return; // Can't move first column up
     const newOrder = [...csvColumns];
     [newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]];
-    const columnIds = newOrder.map(col => col.id);
+    const columnIds = newOrder.map((col) => col.id);
     handleReorderCsvColumns(columnIds);
   };
 
@@ -655,7 +663,7 @@ function App() {
     if (index === csvColumns.length - 1) return; // Can't move last column down
     const newOrder = [...csvColumns];
     [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
-    const columnIds = newOrder.map(col => col.id);
+    const columnIds = newOrder.map((col) => col.id);
     handleReorderCsvColumns(columnIds);
   };
 
@@ -678,7 +686,7 @@ function App() {
 
     try {
       const result = await window.electronAPI.selectCsvDirectory();
-      
+
       if (result.canceled) {
         return; // User canceled
       }
@@ -707,10 +715,7 @@ function App() {
 
   return (
     <>
-      <NotificationContainer
-        notifications={notifications}
-        onRemove={removeNotification}
-      />
+      <NotificationContainer notifications={notifications} onRemove={removeNotification} />
       <Container maxWidth="lg" padding="lg">
         <Stack spacing="xl">
           {/* Header Section */}
@@ -748,11 +753,7 @@ function App() {
               >
                 {isCapturing ? 'Stop Capture' : 'Start Capture'}
               </Button>
-              <Button
-                variant="outline"
-                onClick={handleClear}
-                disabled={cardCount === 0}
-              >
+              <Button variant="outline" onClick={handleClear} disabled={cardCount === 0}>
                 Clear All
               </Button>
             </Stack>
@@ -776,17 +777,20 @@ function App() {
               >
                 Statistics
               </h2>
-              <Grid gap="md" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
-                <StatCard
-                  label="Total Swiped"
-                  value={cardCount}
-                  variant="default"
-                />
+              <Grid
+                gap="md"
+                style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}
+              >
+                <StatCard label="Total Swiped" value={cardCount} variant="default" />
                 <StatCard
                   label="Unique Cards"
                   value={swipedCards.size}
                   variant="success"
-                  subtitle={cardCount > 0 ? `${Math.round((swipedCards.size / cardCount) * 100)}% unique` : ''}
+                  subtitle={
+                    cardCount > 0
+                      ? `${Math.round((swipedCards.size / cardCount) * 100)}% unique`
+                      : ''
+                  }
                 />
                 <StatCard
                   label="Duplicates"
@@ -822,7 +826,11 @@ function App() {
               }}
             >
               <Stack spacing="md">
-                <Stack direction="row" spacing="sm" style={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                <Stack
+                  direction="row"
+                  spacing="sm"
+                  style={{ alignItems: 'center', justifyContent: 'space-between' }}
+                >
                   <p
                     style={{
                       margin: 0,
@@ -836,25 +844,13 @@ function App() {
                     CSV File Location
                   </p>
                   <Stack direction="row" spacing="sm">
-                    <Button
-                      variant="outline"
-                      size="small"
-                      onClick={handleOpenCsvFile}
-                    >
+                    <Button variant="outline" size="small" onClick={handleOpenCsvFile}>
                       Open File
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="small"
-                      onClick={handleDeduplicateCsv}
-                    >
+                    <Button variant="outline" size="small" onClick={handleDeduplicateCsv}>
                       Deduplicate
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="small"
-                      onClick={handleSelectDirectory}
-                    >
+                    <Button variant="outline" size="small" onClick={handleSelectDirectory}>
                       Change Directory
                     </Button>
                   </Stack>
@@ -982,7 +978,8 @@ function App() {
                 >
                   <Stack spacing="sm">
                     {recentCards.map((card, index) => {
-                      const isDuplicate = duplicateCards.has(card.accountNumber) || card.isDuplicate;
+                      const isDuplicate =
+                        duplicateCards.has(card.accountNumber) || card.isDuplicate;
                       return (
                         <Box
                           key={`${card.accountNumber}-${card.timestamp?.getTime() || index}`}
@@ -996,7 +993,11 @@ function App() {
                           }}
                         >
                           <Stack spacing="xs">
-                            <Stack direction="row" spacing="md" style={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                            <Stack
+                              direction="row"
+                              spacing="md"
+                              style={{ alignItems: 'center', justifyContent: 'space-between' }}
+                            >
                               <Box>
                                 <p
                                   style={{
@@ -1033,7 +1034,9 @@ function App() {
                                 style={{
                                   margin: 0,
                                   fontSize: 'var(--font-size-xs)',
-                                  color: isDuplicate ? 'var(--danger-text)' : 'var(--text-secondary)',
+                                  color: isDuplicate
+                                    ? 'var(--danger-text)'
+                                    : 'var(--text-secondary)',
                                 }}
                               >
                                 Swiped at {formatTimestamp(card.timestamp)}
@@ -1165,10 +1168,7 @@ function App() {
                         }}
                       />
                     </Stack>
-                    <Button
-                      variant="primary"
-                      onClick={handleSaveCsvColumns}
-                    >
+                    <Button variant="primary" onClick={handleSaveCsvColumns}>
                       Save Column Configuration
                     </Button>
                     <p
@@ -1178,7 +1178,8 @@ function App() {
                         color: 'var(--text-secondary)',
                       }}
                     >
-                      Changes will be applied to the CSV file header. Existing data will be preserved.
+                      Changes will be applied to the CSV file header. Existing data will be
+                      preserved.
                     </p>
                   </Stack>
                 </Box>
